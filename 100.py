@@ -11,7 +11,7 @@ def max_collatz_length(a, b):
         m = max(m, collatz_length(num))
     return m
 
-def main_function():
+def main():
     while True:
         try:
             a, b = map(int, input().split())
@@ -20,4 +20,4 @@ def main_function():
             break
 
 if __name__ == "__main__":
-    main_function()
+    main()
