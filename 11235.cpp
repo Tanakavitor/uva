@@ -1,6 +1,6 @@
 #include <iostream>
-#include <cmath>
 #include <vector>
+#include <cmath>
 #include <map>
 #include <limits.h>
 #define INVALID INT_MIN
@@ -8,70 +8,79 @@
 using namespace std;
 typedef vector<int> vi;
 
-class segment_tree {
+class SegmentTree {
   private:
     vi tree;
-    int *arr, n;
-    int *orig;
-    int length;
-    void build(int node, int s, int e) {
-      if (s == e) tree[node] = arr[s];
-      else {
-        int left = 2 * node, right = 2 * node + 1;
-        build(left, s, (s+e)/2); build(right, (s+e)/2 + 1, e);
-        tree[node] = max(tree[left], tree[right]);
+    int *frequencyArray, *originalArray, arraySize;
+    int treeSize;
+
+    void buildTree(int node, int start, int end) {
+      if (start == end) {
+        tree[node] = frequencyArray[start];
+      } else {
+        int mid = (start + end) / 2;
+        int leftChild = 2 * node;
+        int rightChild = 2 * node + 1;
+        buildTree(leftChild, start, mid);
+        buildTree(rightChild, mid + 1, end);
+        tree[node] = max(tree[leftChild], tree[rightChild]);
       }
-    };
-    int query(int node, int s, int e, int i, int j) {
-      if (i > e || j < s) return INVALID; 
-      if (s >= i && e <= j) return tree[node];
-      int left = query(2*node, s, (s+e)/2, i, j), 
-          right = query(2*node+1, (s+e)/2 + 1, e,i, j);
-      return max(left, right);
-    };
+    }
+
+    int queryTree(int node, int start, int end, int i, int j) {
+      if (i > end || j < start) return INVALID;
+      if (start >= i && end <= j) return tree[node];
+      int mid = (start + end) / 2;
+      int leftResult = queryTree(2 * node, start, mid, i, j);
+      int rightResult = queryTree(2 * node + 1, mid + 1, end, i, j);
+      return max(leftResult, rightResult);
+    }
 
   public:
-    segment_tree(int orig[], int arr[], int n) {
-      length = (int)(2 * pow(2.0, floor((log((double)n) / log(2.0)) + 1)));
-      tree.resize(length, 0);
-      this->arr = arr; this->n = n;
-      this->orig = orig;
-      build(1, 0, n-1);
-    };
+    SegmentTree(int original[], int frequency[], int size) {
+      arraySize = size;
+      treeSize = 2 * pow(2.0, floor(log2(size)) + 1);
+      tree.resize(treeSize, 0);
+      frequencyArray = frequency;
+      originalArray = original;
+      buildTree(1, 0, size - 1);
+    }
 
-    int getMax(int i, int j) {
-      int cstart = 0, cend = 0;
-      while (i > 0 and i <= j and orig[i] == orig[i-1]) i++, cstart++;
-      while (j >= i and j < n-1 and orig[j] == orig[j+1]) j--, cend++;
-
-      return (j < i) ? max(cstart, cend) : max(max(query(1, 0, n-1, i, j), cstart), cend);
-    };
-
-    void print() {
-      for (int i = 0; i < tree.size(); i++) cout << tree[i] << ' ';
-      cout << endl;
-    };
+    int getMaxFrequency(int i, int j) {
+      int leftCount = 0, rightCount = 0;
+      while (i > 0 && i <= j && originalArray[i] == originalArray[i - 1]) i++, leftCount++;
+      while (j >= i && j < arraySize - 1 && originalArray[j] == originalArray[j + 1]) j--, rightCount++;
+      return (j < i) ? max(leftCount, rightCount) : max(max(queryTree(1, 0, arraySize - 1, i, j), leftCount), rightCount);
+    }
 };
 
 int main() {
   int n, q;
   while (cin >> n) {
-    if (n == 0) return 0;
+    if (n == 0) break;
     cin >> q;
-    int orig[100000];
-    int arr[100000];
-    map<int, int> count;
+    int originalArray[100000];
+    int frequencyArray[100000];
+    map<int, int> frequencyCount;
 
     for (int i = 0; i < n; i++) {
-      int a; cin >> a; count[a]++; orig[i] = a;
+      int value;
+      cin >> value;
+      frequencyCount[value]++;
+      originalArray[i] = value;
     }
-    for (int i = 0; i < n; i++) arr[i] = count[orig[i]];
 
-    segment_tree tree(orig, arr, n);
+    for (int i = 0; i < n; i++) {
+      frequencyArray[i] = frequencyCount[originalArray[i]];
+    }
 
+    SegmentTree segmentTree(originalArray, frequencyArray, n);
+
+    // Process each query
     for (int i = 0; i < q; i++) {
-      int a, b; cin >> a >> b;
-      cout << tree.getMax(a-1, b-1) << endl;
+      int start, end;
+      cin >> start >> end;
+      cout << segmentTree.getMaxFrequency(start - 1, end - 1) << endl;
     }
   }
   return 0;
